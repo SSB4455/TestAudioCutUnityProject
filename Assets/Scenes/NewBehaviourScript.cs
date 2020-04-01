@@ -8,6 +8,7 @@ public class NewBehaviourScript : MonoBehaviour
 	public AudioSource audioSource;
 	string micDevice;
 	int simpleFrequency = 16000;
+	float startRecordTime, endRecordTime;
 
 
 
@@ -39,6 +40,7 @@ public class NewBehaviourScript : MonoBehaviour
 		GetComponentInChildren<Button>().GetComponentInChildren<Text>().text = "松手结束录音";
 
 		audioSource.clip = Microphone.Start(micDevice, false, 30, simpleFrequency);
+		startRecordTime = Time.realtimeSinceStartup;
 		Debug.Log("开始录音");
 	}
 
@@ -46,8 +48,15 @@ public class NewBehaviourScript : MonoBehaviour
 	public void StopRecording()
 	{
 		Microphone.End(micDevice);
+		endRecordTime = Time.realtimeSinceStartup;
 		Debug.Log("录音结束");
 		GetComponentInChildren<Button>().GetComponentInChildren<Text>().text = "按住录音";
+
+		//裁切掉尾部未录音部分
+		if (endRecordTime - startRecordTime < audioSource.clip.length)
+		{
+			audioSource.clip = CutAudioClip(audioSource.clip, 0, endRecordTime - startRecordTime);
+		}
 
 		PlayRecord(audioSource.clip);
 	}
@@ -60,10 +69,10 @@ public class NewBehaviourScript : MonoBehaviour
 	}
 
 	//裁切AudioClip
-	public AudioClip CutAudioClip(AudioClip clip, int startTime, int endTime)
+	public AudioClip CutAudioClip(AudioClip clip, float startTime, float endTime)
 	{
-		float[] data = new float[simpleFrequency * (endTime - startTime)];
-		clip.GetData(data, startTime);
+		float[] data = new float[(int)(simpleFrequency * (endTime - startTime))];
+		clip.GetData(data, (int)(simpleFrequency * startTime));
 		AudioClip newClip = AudioClip.Create("newClip", data.Length, 1, simpleFrequency, false);
 		newClip.SetData(data, 0);
 		return newClip;
